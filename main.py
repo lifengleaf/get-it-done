@@ -19,6 +19,51 @@ class Task(db.Model):
         self.name = name
         self.completed = False
 
+class User(db.Model):
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True)
+    password = db.Column(db.String(120))
+
+    def __init__(self, email, password):
+        self.email = email
+        self.password = password
+
+@app.route('/login', methods=['POST', 'GET'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = User.query.filter_by(email = email).first()
+        if user and user.password == password:
+            # the user has logged in
+            return redirect('/')
+        else:
+            return '<h1>Error</h1>'
+
+    return render_template('login.html')
+
+
+@app.route('/register', methods=['POST', 'GET'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        verify = request.form['verify']
+        # validate user data
+        existing_user = User.query.filter_by(email = email).first()
+        if not existing_user:
+            if password == verify:
+                new_user = User(email, password)
+                db.session.add(new_user)
+                db.session.commit()
+                return redirect('/')
+            else:
+                return '<h1>Password Error</h1>'
+        else:
+            return '<h1>Duplicate User</h1>'
+
+    return render_template('register.html')   
 
 
 @app.route('/', methods=['POST', 'GET'])
