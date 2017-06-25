@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template
+from flask import Flask, request, redirect, render_template, session
 from flask_sqlalchemy import SQLAlchemy 
 
 app = Flask(__name__)
@@ -6,8 +6,9 @@ app.config['DEBUG'] = True
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://get-it-done:1058@localhost:8889/get-it-done'
 app.config['SQLALCHEMY_ECHO'] = True
-
 db = SQLAlchemy(app)
+app.secret_key = 'your_secret_key_string'
+
 
 class Task(db.Model):
 
@@ -19,6 +20,7 @@ class Task(db.Model):
         self.name = name
         self.completed = False
 
+
 class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
@@ -29,6 +31,18 @@ class User(db.Model):
         self.email = email
         self.password = password
 
+
+# check if the user needs to log in for every incoming request
+# run the function before the request handler is called
+@app.before_request
+def require_login():
+    # add routes users don't need to log in to visit
+    allowed_routes = ['login', 'register']
+    if request.endpoint not in allowed_routes and 'email' not in session:
+        redirect('/login')
+
+
+
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     if request.method == 'POST':
@@ -37,11 +51,19 @@ def login():
         user = User.query.filter_by(email = email).first()
         if user and user.password == password:
             # the user has logged in
+            session['email'] = email
             return redirect('/')
         else:
             return '<h1>Error</h1>'
 
     return render_template('login.html')
+
+
+@app.route('/logout', methods=['GET'])
+def logout():
+    if 'email' in session:
+        del session['email']
+    return redirect('/')
 
 
 @app.route('/register', methods=['POST', 'GET'])
@@ -57,6 +79,7 @@ def register():
                 new_user = User(email, password)
                 db.session.add(new_user)
                 db.session.commit()
+                session['email'] = email
                 return redirect('/')
             else:
                 return '<h1>Password Error</h1>'
