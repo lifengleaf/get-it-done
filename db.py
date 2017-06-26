@@ -1,13 +1,18 @@
 from main import db, Task, User
 
+db.drop_all()
 # create new tables within db
 db.create_all()
 
-db.session.add(Task('finish ORM lesson 2'))
-db.session.add(Task('post lesson video'))
+feng = User('feng@gmail.com','cheese')
+task1 = Task('finish ORM lesson 2', feng)
+db.session.add(feng)
+db.session.add(task1)
 
-db.session.add(User('fengli@gmail.com','cheese'))
-db.session.add(User('chris@launchcode.org', '12345'))
+chris = User('chris@launchcode.org', '123')
+task2 = Task('post lesson video', chris)
+db.session.add(chris)
+db.session.add(task2)
 
 db.session.commit()
 
