@@ -17,4 +17,7 @@ db.session.add(task2)
 db.session.commit()
 
 tasks = Task.query.all()
+users = User.query.all()
+
 tasks[0].name
+users[0].tasks[0].name

@@ -1,5 +1,6 @@
 from flask import Flask, request, redirect, render_template, session, flash
 from flask_sqlalchemy import SQLAlchemy 
+from hashutil import make_hash, check_hash
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
@@ -27,12 +28,12 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
-    password = db.Column(db.String(120))
+    pwd_hash = db.Column(db.String(120))
     tasks = db.relationship('Task', backref='owner')
 
     def __init__(self, email, password):
         self.email = email
-        self.password = password
+        self.pwd_hash = make_hash(password)
 
 
 # check if the user needs to log in for every incoming request
@@ -52,7 +53,7 @@ def login():
         email = request.form['email']
         password = request.form['password']
         user = User.query.filter_by(email = email).first()
-        if user and user.password == password:
+        if user and check_hash(password, user.pwd_hash):
             # the user has logged in
             session['email'] = email
             flash('Logged in')
@@ -70,20 +71,23 @@ def register():
         password = request.form['password']
         verify = request.form['verify']
         
-        # validate user data
-        existing_user = User.query.filter_by(email = email).first()
-        if not existing_user:
-            if password == verify:
-                new_user = User(email, password)
-                db.session.add(new_user)
-                db.session.commit()
-                session['email'] = email
-                return redirect('/')
+        if email and password and verify:
+            # validate user data
+            existing_user = User.query.filter_by(email = email).first()
+            if not existing_user:
+                if password == verify:
+                    new_user = User(email, password)
+                    db.session.add(new_user)
+                    db.session.commit()
+                    session['email'] = email
+                    return redirect('/')
+                else:
+                    return '<h1>Password Error</h1>'
             else:
-                return '<h1>Password Error</h1>'
+                return '<h1>Duplicate User</h1>'
         else:
-            return '<h1>Duplicate User</h1>'
-
+            flash('Please fill in the email or password')
+            
     return render_template('register.html')   
 
 
